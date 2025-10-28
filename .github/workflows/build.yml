@@ -1,80 +1,15 @@
-name: Build
+- uses: sonarsource/sonarqube-scan-action@master
+  env:
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  with:
+    args: >
+      -Dsonar.projectKey=Swiggy
+      -Dsonar.projectName=Swiggy
+      -Dsonar.sources=.
 
-on:
-  push:
-    branches:
-      - main
+...
 
-
-jobs:
-  build:
-    name: Build
-    runs-on: [self-hosted]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.projectKey=Swiggy
-            -Dsonar.projectName=Swiggy
-            -Dsonar.sources=.  
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      - name: Docker build and push to ECR
-        run: |
-          # Authenticate Docker to ECR
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f6u5s6o4
-          # Build Docker image
-          docker build -t swiggy-repo -f deployment-using-github-actions/Dockerfile deployment-using-github-actions/
-          # Tag the image for ECR
-          docker tag swiggy-repo:latest public.ecr.aws/f6u5s6o4/swiggy-repo:latest
-          # Push the image to ECR
-          docker push public.ecr.aws/f6u5s6o4/swiggy-repo:latest
-    env:
-      DOCKER_CLI_ACI: 1
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: [self-hosted]
- 
-    steps:
-      - name: Docker pull image
-        run: docker pull public.ecr.aws/f6u5s6o4/swiggy-repo:latest
- 
-      - name: Image scan
-        run: trivy public.ecr.aws/f6u5s6o4/swiggy-repo:latest > trivyimagedeploy.txt
- 
-      - name: Stop and remove existing container
-        run: |
-          docker stop swiggy-clone || true
-          docker rm swiggy-clone || true
-      - name: Deploy to container
-        run: docker run -d --name swiggy-clone -p 3000:3000 public.ecr.aws/f6u5s6o4/swiggy-repo:latest
- 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --region us-east-1 --name EKS_CLOUD 
-
-      - name: Deploy to Kubernetes
- 
-        run: kubectl apply -f deployment-using-github-actions/deployment-service.yml --validate=false
- 
- 
- 
-
-
-      # If you wish to fail your job when the Quality Gate is red, uncomment the
-      # following lines. This would typically be used to fail a deployment.
-      # - uses: sonarsource/sonarqube-quality-gate-action@master
-      #   timeout-minutes: 5
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+- name: Image scan
+  run: trivy image public.ecr.aws/f6u5s6o4/swiggy-repo:latest > trivyimagedeploy.txt
+``
