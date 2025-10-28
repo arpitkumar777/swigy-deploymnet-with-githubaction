@@ -33,11 +33,11 @@ jobs:
         run: |
           # Authenticate Docker to ECR
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/f6u5s6o4
-           # Build Docker image
-          docker build -t swiggy-repo deployment-using-github-actions/Dockerfile deployment-using-github-actions/
-           # Tag the image for ECR
+          # Build Docker image
+          docker build -t swiggy-repo -f deployment-using-github-actions/Dockerfile deployment-using-github-actions/
+          # Tag the image for ECR
           docker tag swiggy-repo:latest public.ecr.aws/f6u5s6o4/swiggy-repo:latest
-           # Push the image to ECR
+          # Push the image to ECR
           docker push public.ecr.aws/f6u5s6o4/swiggy-repo:latest
     env:
       DOCKER_CLI_ACI: 1
