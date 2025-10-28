@@ -52,7 +52,7 @@ jobs:
         run: docker pull public.ecr.aws/f6u5s6o4/swiggy-repo:latest
  
       - name: Image scan
-        run: trivy public.ecr.aws/f6u5s6o4/swiggy-repo:latest > trivyimagedeploy.txt
+        run: trivy image public.ecr.aws/f6u5s6o4/swiggy-repo:latest > trivyimagedeploy.txt
  
       - name: Stop and remove existing container
         run: |
