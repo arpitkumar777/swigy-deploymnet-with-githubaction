@@ -41,7 +41,32 @@ jobs:
           docker push public.ecr.aws/f6u5s6o4/swiggy-repo:latest
     env:
       DOCKER_CLI_ACI: 1
-        
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: [self-hosted]
+ 
+    steps:
+      - name: Docker pull image
+        run: docker pull public.ecr.aws/f6u5s6o4/swiggy-repo:latest
+ 
+      - name: Image scan
+        run: trivy public.ecr.aws/f6u5s6o4/swiggy-repo:latest > trivyimagedeploy.txt
+ 
+      - name: Stop and remove existing container
+        run: |
+          docker stop swiggy-clone || true
+          docker rm swiggy-clone || true
+      - name: Deploy to container
+        run: docker run -d --name swiggy-clone -p 3000:3000 public.ecr.aws/f6u5s6o4/swiggy-repo:latest
+ 
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region us-east-1 --name EKS_CLOUD 
+
+      - name: Deploy to Kubernetes
+ 
+        run: kubectl apply -f deployment-using-github-actions/deployment-service.yml --validate=false
  
  
  
